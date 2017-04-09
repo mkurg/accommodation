@@ -4,6 +4,7 @@
 import os
 import gzip
 import json
+import re
 
 def filter_hour_file(hour_file_name, mentioned_statuses=set(), users_who_reply=set()):
     print('\nFile:\t\t\t\t\t' + hour_file_name)
@@ -62,19 +63,19 @@ def slugify(value):
     and converts spaces to hyphens.
     """
     import unicodedata
-    value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore')
-    value = unicode(re.sub('[^\w\s-]', '', value).strip().lower())
-    value = unicode(re.sub('[-\s]+', '-', value))
+    value = unicodedata.normalize('NFKD', value)
+    value = str(re.sub('[^\w\s-]', '_', value).strip().lower())
+    value = str(re.sub('[-\s]+', '_', value))
     return value
 
 
 for file_name in reversed(sorted(list_of_original_gzip_files)):
-    if len(not_single_tweets) > 250000:
-        with gzip.open('./not_single_tweets/' + slugify(file_name) + '.gz', 'wb') as f:
+    if len(not_single_tweets) > 150000:
+        with gzip.open('../not_single_tweets/' + slugify(file_name) + '.gz', 'wt') as f:
             f.write(json.dumps(not_single_tweets))
         not_single_tweets = {}
-    if len(tweets_by_repliers) > 250000:
-        with gzip.open('./tweets_by_repliers/' + slugify(file_name) + '.gz', 'wb') as f:
+    if len(tweets_by_repliers) > 150000:
+        with gzip.open('../tweets_by_repliers/' + slugify(file_name) + '.gz', 'wt') as f:
             f.write(json.dumps(tweets_by_repliers))
         tweets_by_repliers = {}
     mentioned_statuses, users_who_reply, not_single_tweets_hour, tweets_by_repliers_hour = filter_hour_file(file_name, mentioned_statuses, users_who_reply)
@@ -83,6 +84,8 @@ for file_name in reversed(sorted(list_of_original_gzip_files)):
 
     print('TWEETS BY REPLIERS NOT IN THREAD:\t' + str(len(tweets_by_repliers))) # tweets which are not in any thread in given hour
     print('FIRST TWEETS IN THREADS:\t\t' + str(len(not_single_tweets))) # first tweets in threads
+    print('Mentioned statuses:\t\t\t' + str(len(mentioned_statuses)))
+    print('Users who reply:\t\t\t' + str(len(users_who_reply)))
 
 with gzip.open('../not_single_tweets/first.gz', 'wt') as f:
     f.write(json.dumps(not_single_tweets))
