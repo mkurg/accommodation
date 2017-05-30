@@ -6,7 +6,11 @@ import gzip
 import json
 import re
 
+users = []
+with open('users.txt', 'r') as fh:
+  users = [int(a.strip()) for a in fh]		# Users IDs are INT64, be careful when comparing!
 
+handlers = [open(str(a)+"_threads.txt", 'w') for a in users]
 
 list_of_gzip_files = []
 
@@ -53,8 +57,14 @@ for file_name in reversed(sorted(list_of_gzip_files)):
                         if not k in flat_dict.keys(): # Если сообщение не ответ и на него не ссылались раньше
                             pass
                         else:
-                            big_dict[flat_dict[k]].append([v['id'], m_prev, v['user']['id'], v['created_at']])
+                            big_dict[flat_dict[k]].append([v['id'], m_prev, v['user']['id'], v['created_at'], v['text']])
                         # Saving thread to file
+                        # TODO: check if at least 1 user in users
+                        u_thread = [u[2] for u in big_dict[flat_dict[k]]]
+                        for u in set(users) & set(u_thread):
+                            # Saving threads for each user id
+                            d = big_dict[flat_dict[k]]
+                            h[users.index(u)].write(json.dumps([{'id': tweet[0], 'uid': tweet[2], 'reply_to': tweet[1], 'text': tweet[4]} for tweet in d]) + "\n")
                         # CLeaning big_dict and flat_fict
                         out.write(json.dumps(big_dict[flat_dict[k]]))
                         del big_dict[flat_dict[k]]
@@ -73,7 +83,7 @@ for file_name in reversed(sorted(list_of_gzip_files)):
                         t_id = n
                         flat_dict[m_prev] = n
                         big_dict[t_id] = []
-                    big_dict[t_id].append([v['id'], m_prev, v['user']['id'], v['created_at']])
+                    big_dict[t_id].append([v['id'], m_prev, v['user']['id'], v['created_at'], v['text']])
                     #if k in flat_dict.keys():
                     #  print('ura! %d from thread %d' % (k, t_id))
                     flat_dict[k] = m_prev
@@ -89,3 +99,6 @@ for file_name in reversed(sorted(list_of_gzip_files)):
         #     if len(value) > 2:
         #         print(repr(value))
         #break
+
+for h in handlers:
+    h.close()
